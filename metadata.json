@@ -1,0 +1,6 @@
+{
+  "name": "ChessScout AI — Opponent Analyzer & Opening Trainer",
+  "description": "Client-side Chess.com opponent scouting tool and interactive opening trainer powered by Stockfish Web Worker.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
