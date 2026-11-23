@@ -1,5 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {AlertCircle, Globe, Search} from 'lucide-react';
+import {DEFAULT_SEO_LANGUAGE, buildShareUrl} from './config/seo';
 import {
   AffiliateResourcesSection,
   EditorialSeoSection,
@@ -76,13 +77,18 @@ export default function App() {
   const syncUrlParams = useCallback((nextUser: string | null, nextLang: LanguageCode) => {
     if (typeof window === 'undefined') return;
     const url = new URL(window.location.href);
-    url.searchParams.set('lang', nextLang);
+    if (nextLang === DEFAULT_SEO_LANGUAGE) {
+      url.searchParams.delete('lang');
+    } else {
+      url.searchParams.set('lang', nextLang);
+    }
     if (nextUser && nextUser.trim()) {
       url.searchParams.set('user', nextUser.trim());
     } else {
       url.searchParams.delete('user');
     }
-    window.history.replaceState({}, '', url.toString());
+    const relativeTarget = `${url.pathname}${url.search}`;
+    window.history.replaceState({}, '', relativeTarget);
   }, []);
 
   const runScout = useCallback(
@@ -188,11 +194,9 @@ export default function App() {
 
   const handleCopyShareLink = async (): Promise<boolean> => {
     if (!report) return false;
-    const url = new URL(window.location.origin + window.location.pathname);
-    url.searchParams.set('user', report.profile.username);
-    url.searchParams.set('lang', lang);
+    const shareUrl = buildShareUrl(report.profile.username, lang);
     try {
-      await navigator.clipboard.writeText(url.toString());
+      await navigator.clipboard.writeText(shareUrl);
       return true;
     } catch {
       return false;

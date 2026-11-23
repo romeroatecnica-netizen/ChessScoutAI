@@ -1,3 +1,8 @@
+import {
+  CANONICAL_ORIGIN,
+  DEFAULT_SEO_LANGUAGE,
+  buildCanonicalUrl,
+} from '../config/seo';
 import {getLanguageMeta, getTranslation, SUPPORTED_LANGUAGES} from '../i18n';
 import type {LanguageCode} from '../types/chess';
 
@@ -34,15 +39,8 @@ export function updateDocumentSeo(lang: LanguageCode, analyzedUsername?: string 
   setMetaContent('meta[name="twitter:title"]', title);
   setMetaContent('meta[name="twitter:description"]', description);
 
-  // 3. Canonical & og:url
-  const url = new URL(window.location.href);
-  url.searchParams.set('lang', lang);
-  if (cleanUser) {
-    url.searchParams.set('user', cleanUser);
-  } else {
-    url.searchParams.delete('user');
-  }
-  const canonicalHref = `${url.origin}${url.pathname}${url.search}`;
+  // 3. Canonical, og:url & hreflang strictly derived from CANONICAL_ORIGIN
+  const canonicalHref = buildCanonicalUrl(lang);
   setMetaContent('meta[property="og:url"]', canonicalHref);
 
   const canonicalLink = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
@@ -50,26 +48,19 @@ export function updateDocumentSeo(lang: LanguageCode, analyzedUsername?: string 
     canonicalLink.href = canonicalHref;
   }
 
-  // Update hreflang links dynamically with current user parameter if present
   for (const item of SUPPORTED_LANGUAGES) {
     const link = document.querySelector<HTMLLinkElement>(
       `link[rel="alternate"][hreflang="${item.hreflang}"]`
     );
     if (link) {
-      const altUrl = new URL(window.location.origin + window.location.pathname);
-      altUrl.searchParams.set('lang', item.code);
-      if (cleanUser) altUrl.searchParams.set('user', cleanUser);
-      link.href = altUrl.toString();
+      link.href = buildCanonicalUrl(item.code);
     }
   }
   const xDefault = document.querySelector<HTMLLinkElement>(
     'link[rel="alternate"][hreflang="x-default"]'
   );
   if (xDefault) {
-    const defUrl = new URL(window.location.origin + window.location.pathname);
-    defUrl.searchParams.set('lang', 'en');
-    if (cleanUser) defUrl.searchParams.set('user', cleanUser);
-    xDefault.href = defUrl.toString();
+    xDefault.href = buildCanonicalUrl(DEFAULT_SEO_LANGUAGE);
   }
 
   // 4. Dynamic JSON-LD (SoftwareApplication + FAQPage) in active language
@@ -85,6 +76,7 @@ export function updateDocumentSeo(lang: LanguageCode, analyzedUsername?: string 
         inLanguage: meta.code,
         description,
         url: canonicalHref,
+        mainEntityOfPage: `${CANONICAL_ORIGIN}/`,
         offers: {
           '@type': 'Offer',
           price: '0',
@@ -100,6 +92,7 @@ export function updateDocumentSeo(lang: LanguageCode, analyzedUsername?: string 
       {
         '@type': 'FAQPage',
         inLanguage: meta.code,
+        url: canonicalHref,
         mainEntity: t.editorial.faqs.map((faq) => ({
           '@type': 'Question',
           name: faq.question,
